@@ -57,6 +57,20 @@ export class WebrtcService {
     }
   }
 
+  handleTrackEvent(event) {
+    console.log('----track-----');
+    const srcObject = event.streams[0];
+  }
+
+  // ICE candidate 发送到别的端 通过signaling server
+  handleICECandidateEvent(event: RTCIceCandidate) {
+    const candidate = event.candidate;
+
+    this.sendToServer({})
+  }
+
+  
+
   // signal server；  将数据发送到服务器
   sendToServer(obj: any) {}
 }
