@@ -22,7 +22,7 @@ export class WebrtcService {
     myPeerConnection.onicecandidate = this.handleICECandidateEvent;
     myPeerConnection.oniceconnectionstatechange = this.handleICEConnectionStateChangeEvent;
     myPeerConnection.onicegatheringstatechange = this.handleICEGatheringStateChangeEvent;
-    myPeerConnection.onsignalingstatechange = this.handleSingalingStateChangeEvent;
+    myPeerConnection.onsignalingstatechange = this.handleSignalingStateChangeEvent;
     myPeerConnection.onnegotiationneeded = this.handleNegotiationNeededEvent;
     myPeerConnection.ontrack = this.handleTrackEvent;
 
@@ -63,7 +63,7 @@ export class WebrtcService {
   }
 
   // ICE candidate 发送到别的端 通过signaling server
-  handleICECandidateEvent(event: RTCIceCandidate) {
+  handleICECandidateEvent(event: RTCPeerConnectionIceEvent) {
     const candidate = event.candidate;
 
     this.sendToServer({})
@@ -73,4 +73,58 @@ export class WebrtcService {
 
   // signal server；  将数据发送到服务器
   sendToServer(obj: any) {}
+
+  handleICEConnectionStateChangeEvent(event) {
+    console.log('------ ICE connection 状态改变： ', this.myPeerConnection.iceConnectionState , '------------');
+
+    switch(this.myPeerConnection.iceConnectionState) {
+      case 'closed':
+      case 'failed':
+      case 'disconnected':
+        this.closeVideoCall();
+        break;
+    }
+  }
+
+  // signal server 连接 状态改变
+  handleSignalingStateChangeEvent() {
+    console.log('------ WebRTC signaling state changed to: ', this.myPeerConnection.signalingState, ' -------');
+    const state = this.myPeerConnection.signalingState;
+    switch(state) {
+      case 'closed':
+        this.closeVideoCall();
+        break;
+    }
+  }
+
+
+  // 代表当前 ICE engine 工作模式：
+  // ‘new’ ： 目前没有网络连通
+  // ‘gathering’ ： ICE engine目前正在搜集 网络协商
+  // ‘complete’ 收集结束
+
+  handleICEGatheringStateChangeEvent(event: Event) {
+    console.log('------ ICE 收集状态改编为： ', this.myPeerConnection.iceGatheringState);
+  }
+
+  closeVideoCall() {
+    console.log('----- 关闭链接 ----');
+    if (this.myPeerConnection) {
+      this.myPeerConnection.ontrack = null;
+      this.myPeerConnection.onicecandidate = null;
+      this.myPeerConnection.oniceconnectionstatechange = null;
+      this.myPeerConnection.onsignalingstatechange = null;
+      this.myPeerConnection.onicegatheringstatechange = null;
+      // this.myPeerConnection.onnotificationneeded = null;
+
+      // 关闭 PeerConnection
+      this.myPeerConnection.close();
+      this.myPeerConnection = null;
+      
+    }
+
+    this.myPeerConnection.getTransceivers().forEach(transceiver => {
+      transceiver.stop();
+    })
+  }
 }
